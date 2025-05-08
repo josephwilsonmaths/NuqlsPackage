@@ -60,7 +60,7 @@ class classificationParallel(object):
                 else:
                     pbar_inner = train_loader
 
-                for x,y in train_loader:
+                for x,y in pbar_inner:
                     x, y = x.to(device=self.device, non_blocking=True), y.to(device=self.device, non_blocking=True)
                     f_nlin = self.network(x)
                     proj = torch.vmap(jvp_first, (1,None,None))((theta_S),params,x).permute(1,2,0)
