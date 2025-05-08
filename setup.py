@@ -1,15 +1,15 @@
-from setuptools import setup
+# from setuptools import setup
 
-setup(
-    name='nuqls',
-    version='0.1.0',
+# setup(
+#     name='nuqls',
+#     version='0.1.0',
 
-    url='https://github.com/josephwilsonmaths/NuqlsPackage',
-    author='Joseph Wilson',
-    author_email='joseph.wilson1@uqconnect.edu.au',
+#     url='https://github.com/josephwilsonmaths/NuqlsPackage',
+#     author='Joseph Wilson',
+#     author_email='joseph.wilson1@uqconnect.edu.au',
 
-    py_modules=['nuqls'],
-)
+#     py_modules=['nuqls'],
+# )
 
 # #!/usr/bin/env python
 # # -*- coding: utf-8 -*-
