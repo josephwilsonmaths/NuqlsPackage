@@ -4,7 +4,7 @@ from torch.func import vmap, jacrev
 from torch.utils.data import DataLoader
 import tqdm
 
-import src.utils as utils
+import nuqls.utils as utils
 
 torch.set_default_dtype(torch.float64)
 
