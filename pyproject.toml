@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "nuqls"
-version = "0.0.1"
+version = "0.0.11"
 authors = [
     { name="Joseph Wilson", email="joseph.wilson1@uqconnect.edu.au" },
 ]

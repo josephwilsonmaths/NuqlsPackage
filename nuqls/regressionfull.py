@@ -16,7 +16,7 @@ class regressionParallelFull(object):
         self.network = network
         self.device = next(network.parameters()).device
 
-    def train(self, train, scale=1, S=10, epochs=100, lr=1e-3, mu=0.9, verbose=False, progress_bar=True):
+    def train(self, train, scale=1, S=10, epochs=100, lr=1e-3, mu=0.9, verbose=False):
         fnet, params = make_functional(self.network)
         theta_t = utils.flatten(params)
         theta = torch.randn(size=(theta_t.shape[0],S),device=self.device)*scale + theta_t.unsqueeze(1)
@@ -33,7 +33,7 @@ class regressionParallelFull(object):
         J = torch.cat(J,dim=1).detach()
 
         # Set progress bar
-        if progress_bar:
+        if verbose:
             pbar = tqdm.trange(epochs)
         else:
             pbar = range(epochs)
