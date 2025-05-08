@@ -1,0 +1,4 @@
+scipy==1.15.2
+setuptools==65.5.0
+torch==2.7.0
+tqdm==4.67.1

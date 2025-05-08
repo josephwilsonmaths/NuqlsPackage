@@ -3,10 +3,6 @@ from functorch import make_functional
 from torch.func import vmap, jacrev
 from torch.utils.data import DataLoader
 import tqdm
-import copy
-import time
-from torch.profiler import profile, record_function, ProfilerActivity
-import tracemalloc
 
 import src.utils as utils
 
