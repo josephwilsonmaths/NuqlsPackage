@@ -3,11 +3,7 @@ from functorch import make_functional
 from torch.utils.data import DataLoader
 import tqdm
 import copy
-import time
-from torch.profiler import profile, record_function, ProfilerActivity
-import tracemalloc
-import posteriors.nuqlsPosterior.nuqlsUtils as nqlutil
-
+import src.utils as utils
 
 torch.set_default_dtype(torch.float64)
 
@@ -31,10 +27,10 @@ class regressionParallel(object):
             theta_star = []
             for pi in p:
                 theta_star.append(torch.nn.parameter.Parameter(torch.randn(size=pi.shape,device=self.device)*scale + pi.to(self.device)))
-            theta_S[:,s] = nqlutil.flatten(theta_star)
+            theta_S[:,s] = utils.flatten(theta_star)
 
         def jvp_first(theta_s,params,x):
-            dparams = nqlutil._sub(tuple(nqlutil.unflatten_like(theta_s, params)),params)
+            dparams = utils._sub(tuple(utils.unflatten_like(theta_s, params)),params)
             _, proj = torch.func.jvp(lambda param: fnet(param, x),
                                     (params,), (dparams,))
             return proj
@@ -101,7 +97,7 @@ class regressionParallel(object):
         test_loader = DataLoader(test, test_bs)
 
         def jvp_first(theta_s,params,x):
-            dparams = nqlutil._sub(tuple(nqlutil.unflatten_like(theta_s, params)),params)
+            dparams = utils._sub(tuple(utils.unflatten_like(theta_s, params)),params)
             _, proj = torch.func.jvp(lambda param: fnet(param, x),
                                     (params,), (dparams,))
             return proj
@@ -134,12 +130,12 @@ class regressionParallel(object):
 
             # Left ECE
             scaled_nuqls_predictions = val_predictions * left_third
-            obs_map, predicted = nqlutil.calibration_curve_r(val_y,val_predictions.mean(1),scaled_nuqls_predictions.var(1),11)
+            obs_map, predicted = utils.calibration_curve_r(val_y,val_predictions.mean(1),scaled_nuqls_predictions.var(1),11)
             left_ece = torch.mean(torch.square(obs_map - predicted))
 
             # Right ECE
             scaled_nuqls_predictions = val_predictions * right_third
-            obs_map, predicted = nqlutil.calibration_curve_r(val_y,val_predictions.mean(1),scaled_nuqls_predictions.var(1),11)
+            obs_map, predicted = utils.calibration_curve_r(val_y,val_predictions.mean(1),scaled_nuqls_predictions.var(1),11)
             right_ece = torch.mean(torch.square(obs_map - predicted))
 
             if left_ece > right_ece:

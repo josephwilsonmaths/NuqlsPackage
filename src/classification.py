@@ -3,13 +3,9 @@ from torch.func import functional_call
 from torch.utils.data import DataLoader
 import tqdm
 import copy
-import time
-from torch.profiler import profile, record_function, ProfilerActivity
-import tracemalloc
-import posteriors.nuqlsPosterior.nuqlsUtils as nqlutil
+import src.utils as utils
 
 torch.set_default_dtype(torch.float64)
-
 
 class classificationParallel(object):
     def __init__(self, network):
@@ -30,7 +26,7 @@ class classificationParallel(object):
         theta_S = torch.empty((num_p,S), device=self.device)
 
         def jvp_first(theta_s,params,x):
-            dparams = nqlutil._dub(nqlutil.unflatten_like(theta_s, params.values()),params)
+            dparams = utils._dub(utils.unflatten_like(theta_s, params.values()),params)
             _, proj = torch.func.jvp(lambda param: fnet(param, x),
                                     (params,), (dparams,))
             proj = proj.detach()
@@ -45,7 +41,7 @@ class classificationParallel(object):
             theta_star = []
             for pi in p:
                 theta_star.append(torch.nn.parameter.Parameter(torch.randn(size=pi.shape,device=self.device)*scale + pi.to(self.device)))
-            theta_S[:,s] = nqlutil.flatten(theta_star).detach()
+            theta_S[:,s] = utils.flatten(theta_star).detach()
 
         theta_S = theta_S.detach()
         
@@ -115,7 +111,7 @@ class classificationParallel(object):
             return functional_call(self.network, params, x)
 
         def jvp_first(theta_s,params,x):
-            dparams = nqlutil._dub(nqlutil.unflatten_like(theta_s, params.values()),params)
+            dparams = utils._dub(utils.unflatten_like(theta_s, params.values()),params)
             _, proj = torch.func.jvp(lambda param: fnet(param, x),
                                     (params,), (dparams,))
             proj = proj.detach()

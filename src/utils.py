@@ -3,7 +3,6 @@ import scipy
 from torch.func import jvp
 torch.set_default_dtype(torch.float64)
 
-
 def linearize(f, params):
   def f_lin(p, *args, **kwargs):
     dparams = _sub(p, params)
