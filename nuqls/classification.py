@@ -11,6 +11,7 @@ class classificationParallel(object):
     def __init__(self, network):
         self.network = network
         self.device = next(network.parameters()).device
+        print(f'NUQLS is using device {self.device}.')
 
     def train(self, train, train_bs, n_output, scale, S, epochs, lr, mu, verbose=False, extra_verbose=False):
         
@@ -93,7 +94,7 @@ class classificationParallel(object):
                                 'min_acc_batch': ma_a.min().item(),
                                 'max_acc_batch': ma_a.max().item(),
                                     'resid_norm': torch.mean(torch.square(g)).item()}
-                        if self.device == torch.device('cuda'):
+                        if self.device.type == 'cuda':
                             metrics['gpu_mem'] = 1e-9*torch.cuda.max_memory_allocated()
                         else:
                             metrics['gpu_mem'] = 0
@@ -108,7 +109,7 @@ class classificationParallel(object):
                                'min_acc': acc.min().item(),
                                'max_acc': acc.max().item(),
                                 'resid_norm': torch.mean(torch.square(g)).item()}
-                    if self.device == torch.device('cuda'):
+                    if self.device.type == 'cuda':
                         metrics['gpu_mem'] = 1e-9*torch.cuda.max_memory_allocated()
                     else:
                         metrics['gpu_mem'] = 0
