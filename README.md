@@ -226,14 +226,15 @@ ood_logits = nuqls_posterior.test(ood_test_data, test_bs=152)
 ood_predictions = ood_logits.softmax(dim=2)
 ood_variance = ood_predictions.var(0)
 ```
+
 We can then look at the distribution of `id_variance` and `ood_variance`, by looking at a violin plot of the variances. We also sort the `id_variance` terms into those the network got correct, and those it got incorrect:
-`
+```
 nuqls_variance = classificationutils.metrics.sort_probabilies(id_predictions.to('cpu'), ood_predictions.to('cpu'), test_data=test_data)
 
 classificationutils.metrics.plot_vmsp(prob_dict=nuqls_variance,
                           title=f'SVHN ResNet50',
                           save_fig=f"examples/images/vmsp_plot.pdf")
-`
+```
 
 <p align='center'>
   <img src="examples/images/vmsp_plot-1.png" width="640" height="480">
