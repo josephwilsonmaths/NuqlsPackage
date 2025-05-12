@@ -12,7 +12,7 @@ pip install git+https://github.com/josephwilsonmaths/NuqlsPackage.git
 ```
 ### Regression
 ---
-We provide a simple example. We first create a toy dataset.
+We provide a simple example for how to use NUQLS. First load a toy dataset:
 ```
 import torch
 import matplotlib.pyplot as plt
@@ -27,15 +27,15 @@ plt.plot(train_x,train_y,'ro',markersize=5,label='train')
 plt.plot(test_x,test_y,label='test')
 plt.legend()
 plt.show()
+
 ```
 
-![examples/plot.pdf](https://github.com/josephwilsonmaths/NuqlsPackage/blob/052d0ab47039431535fa1a5e9edc0b202e049609/examples/plot.pdf)
-
-<p align="center">
-  <img src="examples/plot.pdf" width=350>
+<p align='center'>
+  <img src="examples/images/plot-1.png" width="640" height="480">
 </p>
 
-We then train a single-layer MLP on the data.
+
+A single-layer MLP is then trained on the data:
 
 ```
 class toy_dataset(Dataset):
@@ -71,9 +71,12 @@ plt.legend()
 plt.show()
 plt.savefig('plotfitted.pdf',format='pdf')
 ```
-![NUQLS](/examples/plotfitted.pdf)
 
-We can then apply NUQLS to obtain the uncertainty in the network. We can either use Stochastic Gradient Descent (set `full_dataset=False`)
+<p align='center'>
+  <img src="examples/images/plotfitted-1.png" width="640" height="480">
+</p>
+
+We can then apply NUQLS to obtain the uncertainty in the network. Either use Stochastic Gradient Descent (set `full_dataset=False`):
 ```
 from nuqls.posterior import Nuqls
 
@@ -94,7 +97,7 @@ nuql_test_preds = nuqls_posterior.test(test_data, test_bs=50)
 nuql_mu = nuql_test_preds.mean(1)
 nuql_var = nuql_test_preds.var(1)
 ```
-or we can use Gradient Descent (set `full_dataset=False` - only for small datasets)
+Or use Gradient Descent (set `full_dataset=False`)(only for small datasets):
 ```
 from nuqls.posterior import Nuqls
 
@@ -114,7 +117,8 @@ nuql_test_preds = nuqls_posterior.test(test_data, test_bs=10)
 nuql_mu = nuql_test_preds.mean(1)
 nuql_var = nuql_test_preds.var(1)
 ```
-We can then use this uncertainty to create confidence intervals
+
+The NUQLS variance term can then be used to create confidence intervals around the prediction:
 ```
 fs, ms, lw = 14, 3, 1
 f, (ax1) = plt.subplots(1,1)
@@ -127,8 +131,14 @@ plot_bayes_method(ax1,nuql_mu,nuql_var,
 plt.show()
 plt.savefig('plotvariance.pdf',format='pdf')
 ```
-![NUQLS](/examples/plotvariance.pdf)
 
+<p align='center'>
+  <img src="examples/images/plotvariance-1.png" width="640" height="480">
+</p>
+
+### Classification
+---
+We can take a ResNet50, trained on SVHN
 
 License
 -------
