@@ -236,7 +236,7 @@ classificationutils.metrics.plot_vmsp(prob_dict=nuqls_variance,
 `
 
 <p align='center'>
-  <img src="examples/plotvariance-1.png" width="640" height="480">
+  <img src="examples/images/vmsp_plot-1.png" width="640" height="480">
 </p>
 
 We have included a 'BASE' method, where we randomly sample many realizations of `10` logits from the standard normal distribution, and compute the variance of these predictions. We want large variance for OoD and incorrectly predicted ID points, and very low variance for correctly predicted ID points. We see that NUQLS does very well at this task!
