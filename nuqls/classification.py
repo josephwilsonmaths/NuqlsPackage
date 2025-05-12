@@ -14,7 +14,8 @@ class classificationParallel(object):
         print(f'NUQLS is using device {self.device}.')
 
     def train(self, train, train_bs, n_output, scale, S, epochs, lr, mu, verbose=False, extra_verbose=False):
-        
+        if verbose:
+            print('Training linear networks.')
         train_loader = DataLoader(train,train_bs)
 
         params = {k: v.detach() for k, v in self.network.named_parameters()}
