@@ -29,7 +29,7 @@ plt.legend()
 plt.show()
 ```
 
-![plot.pdf](examples/plot.pdf)
+![examples/plot.pdf](https://github.com/josephwilsonmaths/NuqlsPackage/blob/052d0ab47039431535fa1a5e9edc0b202e049609/examples/plot.pdf)
 
 <p align="center">
   <img src="examples/plot.pdf" width=350>
