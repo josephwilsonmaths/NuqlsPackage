@@ -28,7 +28,12 @@ plt.plot(test_x,test_y,label='test')
 plt.legend()
 plt.show()
 ```
-![NUQLS](/examples/plot.pdf)
+
+![plot.pdf](examples/plot.pdf)
+
+<p align="center">
+  <img src="examples/plot.pdf" width=350>
+</p>
 
 We then train a single-layer MLP on the data.
 
