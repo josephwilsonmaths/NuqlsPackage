@@ -31,7 +31,7 @@ plt.show()
 ```
 
 <p align='center'>
-  <img src="examples/plot-1.png" width="640" height="480">
+  <img src="examples/images/plot-1.png" width="640" height="480">
 </p>
 
 
@@ -73,7 +73,7 @@ plt.savefig('plotfitted.pdf',format='pdf')
 ```
 
 <p align='center'>
-  <img src="examples/plotfitted-1.png" width="640" height="480">
+  <img src="examples/images/plotfitted-1.png" width="640" height="480">
 </p>
 
 We can then apply NUQLS to obtain the uncertainty in the network. Either use Stochastic Gradient Descent (set `full_dataset=False`):
@@ -133,7 +133,7 @@ plt.savefig('plotvariance.pdf',format='pdf')
 ```
 
 <p align='center'>
-  <img src="examples/plotvariance-1.png" width="640" height="480">
+  <img src="examples/images/plotvariance-1.png" width="640" height="480">
 </p>
 
 ### Classification
