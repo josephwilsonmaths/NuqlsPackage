@@ -31,7 +31,7 @@ plt.show()
 ```
 
 <p align='center'>
-  <img src="examples/plot-1.png" width="640" height="480">
+  <img src="examples/images/plot-1.png" width="640" height="480">
 </p>
 
 
@@ -73,7 +73,7 @@ plt.savefig('plotfitted.pdf',format='pdf')
 ```
 
 <p align='center'>
-  <img src="examples/plotfitted-1.png" width="640" height="480">
+  <img src="examples/images/plotfitted-1.png" width="640" height="480">
 </p>
 
 We can then apply NUQLS to obtain the uncertainty in the network. Either use Stochastic Gradient Descent (set `full_dataset=False`):
@@ -133,7 +133,7 @@ plt.savefig('plotvariance.pdf',format='pdf')
 ```
 
 <p align='center'>
-  <img src="examples/plotvariance-1.png" width="640" height="480">
+  <img src="examples/images/plotvariance-1.png" width="640" height="480">
 </p>
 
 ### Classification
@@ -226,20 +226,21 @@ ood_logits = nuqls_posterior.test(ood_test_data, test_bs=152)
 ood_predictions = ood_logits.softmax(dim=2)
 ood_variance = ood_predictions.var(0)
 ```
+
 We can then look at the distribution of `id_variance` and `ood_variance`, by looking at a violin plot of the variances. We also sort the `id_variance` terms into those the network got correct, and those it got incorrect:
-`
+```
 nuqls_variance = classificationutils.metrics.sort_probabilies(id_predictions.to('cpu'), ood_predictions.to('cpu'), test_data=test_data)
 
 classificationutils.metrics.plot_vmsp(prob_dict=nuqls_variance,
                           title=f'SVHN ResNet50',
                           save_fig=f"examples/images/vmsp_plot.pdf")
-`
+```
 
 <p align='center'>
-  <img src="examples/plotvariance-1.png" width="640" height="480">
+  <img src="examples/images/vmsp_plot-1.png" width="640" height="480">
 </p>
 
-We have included a 'BASE' method, where we randomly sample many realizations of `10` logits from the standard normal distribution, and compute the variance of these predictions. We want large variance for OoD and incorrectly predicted ID points, and very low variance for correctly predicted ID points. We see that NUQLS does very well at this task!
+We have compared to a 'BASE' method, where we randomly sample many realizations of `10` logits from the standard normal distribution, and compute the variance of these predictions. We want large variance for OoD and incorrectly predicted ID points, and very low variance for correctly predicted ID points. We see that NUQLS does very well at this task!
 
 License
 -------
