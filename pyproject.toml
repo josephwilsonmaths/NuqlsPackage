@@ -6,7 +6,7 @@ build-backend = "setuptools.build_meta"
 name = "nuqls"
 version = "0.0.12"
 authors = [
-    { name="Joseph Wilson", email="joseph.wilson1@uqconnect.edu.au" },
+    { name="ANON", email="anon@edu.au" },
 ]
 description = "TODO"
 readme = "README.md"

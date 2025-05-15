@@ -1,0 +1,14 @@
+LICENCE.txt
+MANIFEST.in
+README.md
+pyproject.toml
+nuqls/__init__.py
+nuqls/classification.py
+nuqls/posterior.py
+nuqls/regression.py
+nuqls/regressionfull.py
+nuqls/utils.py
+nuqls.egg-info/PKG-INFO
+nuqls.egg-info/SOURCES.txt
+nuqls.egg-info/dependency_links.txt
+nuqls.egg-info/top_level.txt
