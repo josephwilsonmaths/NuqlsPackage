@@ -10,12 +10,12 @@ torch.set_default_dtype(torch.float64)
 class classificationParallel(object):
     def __init__(self, network):
         self.network = network
+        self.network.eval()
         self.device = next(network.parameters()).device
         print(f'NUQLS is using device {self.device}.')
 
-    def train(self, train, train_bs, n_output, scale, S, epochs, lr, mu, verbose=False, extra_verbose=False):
-        if verbose:
-            print('Training linear networks.')
+    def train(self, train, train_bs, n_output, scale, S, epochs, lr, mu, verbose=False, extra_verbose=False, save_weights=None):
+        
         train_loader = DataLoader(train,train_bs)
 
         params = {k: v.detach() for k, v in self.network.named_parameters()}
@@ -51,6 +51,15 @@ class classificationParallel(object):
             pbar = tqdm.trange(epochs)
         else:
             pbar = range(epochs)
+
+        if save_weights is not None:
+            save_dict = {}
+            save_dict['info'] = {
+                                'gamma': scale,
+                                'epochs': epochs,
+                                'lr': lr,
+                                }
+            save_dict['training'] = {}
         
         with torch.no_grad():
             for epoch in pbar:
@@ -63,7 +72,7 @@ class classificationParallel(object):
                     pbar_inner = train_loader
 
                 for x,y in pbar_inner:
-                    x, y = x.to(device=self.device, non_blocking=True), y.to(device=self.device, non_blocking=True)
+                    x, y = x.to(device=self.device, non_blocking=True, dtype=torch.float64), y.to(device=self.device, non_blocking=True)
                     f_nlin = self.network(x)
                     proj = torch.vmap(jvp_first, (1,None,None))((theta_S),params,x).permute(1,2,0)
                     f_lin = (proj + f_nlin.unsqueeze(2))
@@ -116,13 +125,29 @@ class classificationParallel(object):
                         metrics['gpu_mem'] = 0
                     pbar.set_postfix(metrics)
 
+                if save_weights is not None:
+                    save_dict['training'][f'{epoch}'] = {
+                                'weights': theta_S,
+                                'min_loss': loss.min().item(),
+                                'max_loss': loss.max().item(),
+                                'min_acc': acc.min().item(),
+                                'max_acc': acc.max().item(),
+                                'resid_norm': torch.mean(torch.square(g)).item()
+                                }
+                    torch.save(save_dict, save_weights)
+
         if verbose:
             print('Posterior samples computed!')
         self.theta_S = theta_S
 
         return loss.max().item(), acc.min().item()
     
-    def test(self, test, test_bs=50):
+    def test(self, test, test_bs=50, pre_load = None):
+        if pre_load is not None:
+            weight_dict = torch.load(pre_load, map_location=self.device)
+            l = list(weight_dict['training'].keys())[-1]
+            self.theta_S = weight_dict['training'][l]['weights']
+            
         params = {k: v.detach() for k, v in self.network.named_parameters()}
 
         test_loader = DataLoader(test, test_bs)
