@@ -12,32 +12,32 @@ class classificationParallel(object):
         self.network = network
         self.network.eval()
         self.device = next(network.parameters()).device
+        self.params = {k: v.detach() for k, v in self.network.named_parameters()}
         print(f'NUQLS is using device {self.device}.')
+
+    def fnet(self, params, x):
+        return functional_call(self.network, params, x)
+
+    def jvp_first(self, theta_s,params,x):
+        dparams = utils._dub(utils.unflatten_like(theta_s, params.values()),params)
+        _, proj = torch.func.jvp(lambda param: self.fnet(param, x),
+                                (params,), (dparams,))
+        proj = proj.detach()
+        return proj
+    
+    def vjp_second(self,resid_s,params,x):
+        _, vjp_fn = torch.func.vjp(lambda param: self.fnet(param, x), params)
+        vjp = vjp_fn(resid_s)
+        return vjp
 
     def train(self, train, train_bs, n_output, scale, S, epochs, lr, mu, verbose=False, extra_verbose=False, save_weights=None):
         
         train_loader = DataLoader(train,train_bs)
 
-        params = {k: v.detach() for k, v in self.network.named_parameters()}
         num_p = sum(p.numel() for p in self.network.parameters() if p.requires_grad)
 
-        def fnet(params, x):
-            return functional_call(self.network, params, x)
-
-        p = copy.deepcopy(params).values()
+        p = copy.deepcopy(self.params).values()
         theta_S = torch.empty((num_p,S), device=self.device)
-
-        def jvp_first(theta_s,params,x):
-            dparams = utils._dub(utils.unflatten_like(theta_s, params.values()),params)
-            _, proj = torch.func.jvp(lambda param: fnet(param, x),
-                                    (params,), (dparams,))
-            proj = proj.detach()
-            return proj
-
-        def vjp_second(resid_s,params,x):
-            _, vjp_fn = torch.func.vjp(lambda param: fnet(param, x), params)
-            vjp = vjp_fn(resid_s)
-            return vjp
         
         for s in range(S):
             theta_star = []
@@ -74,12 +74,12 @@ class classificationParallel(object):
                 for x,y in pbar_inner:
                     x, y = x.to(device=self.device, non_blocking=True, dtype=torch.float64), y.to(device=self.device, non_blocking=True)
                     f_nlin = self.network(x)
-                    proj = torch.vmap(jvp_first, (1,None,None))((theta_S),params,x).permute(1,2,0)
+                    proj = torch.vmap(self.jvp_first, (1,None,None))((theta_S),self.params,x).permute(1,2,0)
                     f_lin = (proj + f_nlin.unsqueeze(2))
                     Mubar = torch.clamp(torch.nn.functional.softmax(f_lin,dim=1),1e-32,1)
                     ybar = torch.nn.functional.one_hot(y,num_classes=n_output)
                     resid = (Mubar - ybar.unsqueeze(2))
-                    projT = torch.vmap(vjp_second, (2,None,None))(resid,params,x)
+                    projT = torch.vmap(self.vjp_second, (2,None,None))(resid,self.params,x)
                     vjp = [j.detach().flatten(1) for j in projT[0].values()]
                     vjp = torch.cat(vjp,dim=1).detach()
                     g = (vjp.T / x.shape[0]).detach()
@@ -147,27 +147,15 @@ class classificationParallel(object):
             weight_dict = torch.load(pre_load, map_location=self.device)
             l = list(weight_dict['training'].keys())[-1]
             self.theta_S = weight_dict['training'][l]['weights']
-            
-        params = {k: v.detach() for k, v in self.network.named_parameters()}
 
         test_loader = DataLoader(test, test_bs)
-
-        def fnet(params, x):
-            return functional_call(self.network, params, x)
-
-        def jvp_first(theta_s,params,x):
-            dparams = utils._dub(utils.unflatten_like(theta_s, params.values()),params)
-            _, proj = torch.func.jvp(lambda param: fnet(param, x),
-                                    (params,), (dparams,))
-            proj = proj.detach()
-            return proj
         
         # Concatenate predictions
         pred_s = []
         for x,y in test_loader:
             x, y = x.to(self.device), y.to(self.device)
             f_nlin = self.network(x)
-            proj = torch.vmap(jvp_first, (1,None,None))((self.theta_S),params,x).permute(1,2,0)
+            proj = torch.vmap(self.jvp_first, (1,None,None))((self.theta_S),self.params,x).permute(1,2,0)
             f_lin = (proj + f_nlin.unsqueeze(2))
             pred_s.append(f_lin.detach())
 
@@ -187,4 +175,11 @@ class classificationParallel(object):
         var_prob = probits.var(0)
 
         return mean_prob.detach(), var_prob.detach()
+    
+    def eval(self,x):
+        x = x.to(self.device)
+        f_nlin = self.network(x)
+        proj = torch.vmap(self.jvp_first, (1,None,None))((self.theta_S),self.params,x).permute(1,2,0)
+        f_lin = (proj + f_nlin.unsqueeze(2))
+        return f_lin.detach()
     
