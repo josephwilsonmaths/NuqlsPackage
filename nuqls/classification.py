@@ -142,11 +142,12 @@ class classificationParallel(object):
 
         return loss.max().item(), acc.min().item()
     
-    def test(self, test, test_bs=50, pre_load = None):
-        if pre_load is not None:
-            weight_dict = torch.load(pre_load, map_location=self.device)
-            l = list(weight_dict['training'].keys())[-1]
-            self.theta_S = weight_dict['training'][l]['weights']
+    def pre_load(self, pre_load):
+        weight_dict = torch.load(pre_load, map_location=self.device)
+        l = list(weight_dict['training'].keys())[-1]
+        self.theta_S = weight_dict['training'][l]['weights']
+        
+    def test(self, test, test_bs=50):
 
         test_loader = DataLoader(test, test_bs)
         
@@ -181,5 +182,5 @@ class classificationParallel(object):
         f_nlin = self.network(x)
         proj = torch.vmap(self.jvp_first, (1,None,None))((self.theta_S),self.params,x).permute(1,2,0)
         f_lin = (proj + f_nlin.unsqueeze(2))
-        return f_lin.detach()
+        return f_lin.detach().permute(2,0,1) 
     
