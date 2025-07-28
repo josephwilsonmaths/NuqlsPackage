@@ -136,7 +136,8 @@ class regressionParallelFull(object):
                 print(f'\nSCALE {scale:.3}:: MAP: [{left_ece:.1%},{right_ece:.1%}]') 
 
             if abs(right_scale - left_scale) <= 1e-2:
-                print('Converged.')
+                if verbose:
+                    print('Converged.')
                 break
 
         self.scale_cal = scale
