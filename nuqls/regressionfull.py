@@ -100,3 +100,59 @@ class regressionParallelFull(object):
 
         predictions = torch.cat(pred_s,dim=0)
         return predictions
+    
+    def HyperparameterTuning(self, validation, left, right, its, verbose=False):
+        val_predictions = self.test(validation)
+
+        calibration_test_loader_val = DataLoader(validation,len(validation))
+        _, val_y = next(iter(calibration_test_loader_val))
+
+        left_scale, right_scale = left, right
+
+        # Ternary Search
+        for k in range(its):
+            left_third = left_scale + (right_scale - left_scale) / 3
+            right_third = right_scale - (right_scale - left_scale) / 3
+
+            # Left ECE
+            scaled_nuqls_predictions = val_predictions * left_third
+            obs_map, predicted = utils.calibration_curve_r(val_y,val_predictions.mean(1),scaled_nuqls_predictions.var(1),11)
+            left_ece = torch.mean(torch.square(obs_map - predicted))
+
+            # Right ECE
+            scaled_nuqls_predictions = val_predictions * right_third
+            obs_map, predicted = utils.calibration_curve_r(val_y,val_predictions.mean(1),scaled_nuqls_predictions.var(1),11)
+            right_ece = torch.mean(torch.square(obs_map - predicted))
+
+            if left_ece > right_ece:
+                left_scale = left_third
+            else:
+                right_scale = right_third
+
+            scale = (left_scale + right_scale) / 2
+
+            # Print info
+            if verbose:
+                print(f'\nSCALE {scale:.3}:: MAP: [{left_ece:.1%},{right_ece:.1%}]') 
+
+            if abs(right_scale - left_scale) <= 1e-2:
+                print('Converged.')
+                break
+
+        self.scale_cal = scale
+
+    def eval(self,x):
+        fnet, params = make_functional(self.network)
+        theta_t = utils.flatten(params)
+
+        def fnet_single(params, x):
+            return fnet(params, x.unsqueeze(0)).squeeze(0)
+
+        x = x.to(self.device)
+        f_nlin = self.network(x)
+        J = vmap(jacrev(fnet_single), (None, 0))(params, x)
+        J = [j.detach().flatten(1) for j in J]
+        J = torch.cat(J,dim=1)
+
+        pred_lin = J @ (self.theta - theta_t.unsqueeze(1)) + f_nlin ## n x S
+        return pred_lin.detach()
