@@ -192,10 +192,10 @@ class classificationParallel(object):
         return f_lin.detach().permute(2,0,1) 
     
     def HyperparameterTuning(self, validation, metric = 'ece', left = 1e-2, right = 1e2, its = 100, verbose=False):
-        predictions = self.test(validation, test_bs=200)
+        predictions = self.test(validation, test_bs=200).cpu()
 
         loader = DataLoader(validation,batch_size=100)
-        val_targets = torch.cat([y.to(self.device) for _,y in loader])
+        val_targets = torch.cat([y for _,y in loader])
 
         if metric == 'ece':
             ece_compute = MulticlassCalibrationError(num_classes=self.num_output,n_bins=10,norm='l1')
