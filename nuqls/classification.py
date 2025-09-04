@@ -4,6 +4,7 @@ from torch.utils.data import DataLoader
 import tqdm
 import copy
 import nuqls.utils as utils
+from torchmetrics.classification import MulticlassCalibrationError
 
 torch.set_default_dtype(torch.float64)
 
@@ -30,7 +31,7 @@ class classificationParallel(object):
         vjp = vjp_fn(resid_s)
         return vjp
 
-    def train(self, train, train_bs, n_output, scale, S, epochs, lr, mu, verbose=False, extra_verbose=False, save_weights=None):
+    def train(self, train, train_bs, n_output, scale, S, epochs, lr, mu, threshold = None, verbose=False, extra_verbose=False, save_weights=None):
         
         train_loader = DataLoader(train,train_bs)
 
@@ -88,10 +89,16 @@ class classificationParallel(object):
                         bt = g
                     else:
                         bt = mu*bt + g
-                    theta_S -= lr*bt
 
                     l = (-1 / x.shape[0] * torch.sum((ybar.unsqueeze(2) * torch.log(Mubar)),dim=(0,1))).detach().cpu()
                     loss += l
+
+                    # Early stopping
+                    if threshold:
+                        bt[:,l < threshold] = -bt[:,l < threshold]
+                        bt[:,l == threshold] = 0
+
+                    theta_S -= lr*bt
 
                     a = (f_lin.argmax(1) == y.unsqueeze(1).repeat(1,S)).type(torch.float).sum(0).detach().cpu()  # f_lin: N x C x S, y: N
                     acc += a
@@ -184,3 +191,35 @@ class classificationParallel(object):
         f_lin = (proj + f_nlin.unsqueeze(2))
         return f_lin.detach().permute(2,0,1) 
     
+    def HyperparameterTuning(self, validation, metric = 'ece', left = 1e-2, right = 1e2, its = 100, verbose=False):
+        predictions = self.test(validation, test_bs=200)
+
+        loader = DataLoader(validation,batch_size=100)
+        val_targets = torch.cat([y for _,y in loader])
+
+        if metric == 'ece':
+            ece_compute = MulticlassCalibrationError(num_classes=self.num_output,n_bins=10,norm='l1')
+            def ece_eval(gamma):
+                mean_prediction = (predictions * gamma).softmax(-1).mean(0)
+                return ece_compute(mean_prediction, val_targets).cpu().item()
+            f = ece_eval
+            input_name, output_name = 'scale', 'ECE' 
+        elif metric == 'varroc-id':
+            def varroc_id_eval(gamma):
+                scaled_predictions = (predictions * gamma).softmax(-1)
+                idc, idic = utils.sort_preds(scaled_predictions,val_targets)
+                return utils.aucroc(idic.var(0).sum(1), idc.var(0).sum(1))
+            f = lambda x : -varroc_id_eval(x)
+            input_name, output_name = 'scale', 'VARROC-ID' 
+        else:
+            print('Invalid metric choice. Valid choices are: [ece].')
+
+        scale = utils.ternary_search(f = f,
+                               left=left,
+                               right=right,
+                               its=its,
+                               verbose=verbose,
+                               input_name=input_name,
+                               output_name=output_name)
+
+        self.scale_cal = scale
