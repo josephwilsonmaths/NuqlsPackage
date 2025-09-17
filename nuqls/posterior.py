@@ -18,3 +18,6 @@ def Nuqls(
     elif task == 'classification':
         return nuqls.classification.classificationParallel(network)
     
+    elif task == 'classificationInterpolation':
+        return nuqls.classification.classificationParallelInterpolation(network)
+    
