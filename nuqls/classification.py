@@ -341,7 +341,7 @@ class classificationParallelInterpolation(object):
                 else:
                     pbar_inner = train_loader
 
-                for x,_ in train_loader:
+                for x,_ in pbar_inner:
                     x = x.to(device=self.device, non_blocking=True, dtype=torch.float64)
                     if J is not None:
                         f = J.flatten(0,1) @ (theta_S.to(self.device) - self.theta_t.unsqueeze(1))
