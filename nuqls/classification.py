@@ -342,6 +342,7 @@ class classificationParallelInterpolation(object):
                     pbar_inner = train_loader
 
                 for x,_ in train_loader:
+                    x = x.to(device=self.device, non_blocking=True, dtype=torch.float64)
                     if J is not None:
                         f = J.flatten(0,1) @ (theta_S.to(self.device) - self.theta_t.unsqueeze(1))
                         g = J.flatten(0,1).T @ f / (X.shape[0] * n_output)
@@ -364,11 +365,11 @@ class classificationParallelInterpolation(object):
                     if extra_verbose:
                         metrics = {'loss': l.item(),
                                 'resid_norm': torch.mean(torch.square(g)).item()}
-                    if self.device.type == 'cuda':
-                        metrics['gpu_mem'] = 1e-9*torch.cuda.max_memory_allocated()
-                    else:
-                        metrics['gpu_mem'] = 0
-                        pbar_inner.set_postfix(metrics)
+                        if self.device.type == 'cuda':
+                            metrics['gpu_mem'] = 1e-9*torch.cuda.max_memory_allocated()
+                        else:
+                            metrics['gpu_mem'] = 0
+                            pbar_inner.set_postfix(metrics)
                 
                 loss /= len(train_loader)
 
