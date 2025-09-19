@@ -369,7 +369,7 @@ class classificationParallelInterpolation(object):
                             metrics['gpu_mem'] = 1e-9*torch.cuda.max_memory_allocated()
                         else:
                             metrics['gpu_mem'] = 0
-                            pbar_inner.set_postfix(metrics)
+                        pbar_inner.set_postfix(metrics)
                 
                 loss /= len(train_loader)
 
