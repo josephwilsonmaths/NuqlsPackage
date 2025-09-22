@@ -358,7 +358,7 @@ class classificationParallelInterpolation(object):
                     else:
                         bt = mu*bt + g
 
-                    l = (torch.linalg.norm(f)  / (x.shape[0] * n_output * S)).detach()
+                    l = (torch.square(f).sum()  / (x.shape[0] * n_output * S)).detach()
                     loss += l
                     theta_S -= lr*bt
 
