@@ -288,7 +288,7 @@ class classificationParallelInterpolation(object):
         vjp = vjp_fn(resid_s)
         return vjp
 
-    def train(self, train, train_bs, n_output, scale, S, epochs, lr, mu, wd = 0, threshold = None, verbose=False, extra_verbose=False, save_weights=None):
+    def train(self, train, train_bs, n_output, scale, S, epochs, lr, mu, wd = 0, decay = None, threshold = None, verbose=False, extra_verbose=False, save_weights=None):
         
         train_loader = DataLoader(train,train_bs)
 
@@ -360,7 +360,10 @@ class classificationParallelInterpolation(object):
 
                     l = (torch.square(f).sum()  / (x.shape[0] * n_output * S)).detach()
                     loss += l
-                    theta_S -= lr*bt
+                    if decay is not None:
+                        theta_S -= (lr * (decay ** epoch))*bt
+                    else:
+                        theta_S -= lr*bt
 
                     if extra_verbose:
                         metrics = {'loss': l.item(),
