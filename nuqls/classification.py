@@ -372,6 +372,8 @@ class classificationParallelInterpolation(object):
                             metrics['gpu_mem'] = 1e-9*torch.cuda.max_memory_allocated()
                         else:
                             metrics['gpu_mem'] = 0
+                        if decay is not None:
+                            metrics['lr'] = (lr * (decay ** epoch))
                         pbar_inner.set_postfix(metrics)
                 
                 loss /= len(train_loader)
@@ -383,6 +385,8 @@ class classificationParallelInterpolation(object):
                         metrics['gpu_mem'] = 1e-9*torch.cuda.max_memory_allocated()
                     else:
                         metrics['gpu_mem'] = 0
+                    if decay is not None:
+                            metrics['lr'] = (lr * (decay ** epoch))
                     pbar.set_postfix(metrics)
 
                 if save_weights is not None:
