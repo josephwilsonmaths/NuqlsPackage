@@ -335,14 +335,17 @@ class classificationParallelInterpolation(object):
         with torch.no_grad():
             for epoch in pbar:
                 loss = 0
+                ce_loss = torch.zeros((S), device='cpu')
+                acc = torch.zeros((S), device='cpu')
 
                 if extra_verbose:
                     pbar_inner = tqdm.tqdm(train_loader)
                 else:
                     pbar_inner = train_loader
 
-                for x,_ in pbar_inner:
-                    x = x.to(device=self.device, non_blocking=True, dtype=torch.float64)
+                for x,y in pbar_inner:
+                    # Compute gradient
+                    x, y = x.to(device=self.device, non_blocking=True, dtype=torch.float64), y.to(device=self.device, non_blocking=True)
                     if J is not None:
                         f = J.flatten(0,1) @ (theta_S.to(self.device) - self.theta_t.unsqueeze(1))
                         g = J.flatten(0,1).T @ f / (X.shape[0] * n_output)
@@ -353,20 +356,56 @@ class classificationParallelInterpolation(object):
                         vjp = torch.cat(vjp,dim=1).detach()
                         g = (vjp.T / (x.shape[0] * n_output)).detach()
 
+                    # Momentum
                     if epoch == 0:
                         bt = g
                     else:
                         bt = mu*bt + g
 
+                    # Compute squared-error loss
                     l = (torch.square(f).sum()  / (x.shape[0] * n_output * S)).detach()
                     loss += l
+
+                    # Compute cross-entropy loss
+                    f_nlin = self.network(x)
+                    f_lin = (f + f_nlin.reshape(-1,1)).reshape(x.shape[0],n_output,S)
+                    if n_output > 1:
+                        Mubar = torch.clamp(torch.nn.functional.softmax(f_lin,dim=1),1e-32,1)
+                        ybar = torch.nn.functional.one_hot(y,num_classes=n_output)
+                    else:
+                        Mubar = torch.clamp(torch.nn.functional.sigmoid(f_lin),1e-32,1)
+                        ybar = y.unsqueeze(1)
+
+                    if n_output > 1:
+                        ce_l = (-1 / x.shape[0] * torch.sum((ybar.unsqueeze(2) * torch.log(Mubar)),dim=(0,1))).detach().cpu()
+                    else:
+                        input1 = torch.clamp(-f_lin,max = 0) + torch.log(1 + torch.exp(f_lin.abs()))
+                        input2 = -f_lin - input1
+                        ce_l = - torch.sum((ybar.unsqueeze(2) * (-input1) + (1 - ybar).unsqueeze(2) * input2),dim=(0,1)) / x.shape[0]
+                    ce_loss += ce_l
+
+                    # Compute accuracy
+                    if n_output > 1:
+                        a = (f_lin.argmax(1) == y.unsqueeze(1).repeat(1,S)).type(torch.float).sum(0).detach().cpu()  # f_lin: N x C x S, y: N
+                    else:
+                        a = (f_lin.sigmoid().round().squeeze(1) == y.unsqueeze(1).repeat(1,S)).type(torch.float).sum(0).detach().cpu()  # f_lin: N x C x S, y: N
+                    acc += a
+
+                    # Iterate parameters
                     if decay is not None:
                         theta_S -= (lr * (decay ** epoch))*bt
                     else:
                         theta_S -= lr*bt
 
+                    # Record metrics
                     if extra_verbose:
-                        metrics = {'loss': l.item(),
+                        ma_l = ce_loss / (pbar_inner.format_dict['n'] + 1)
+                        ma_a = acc / ((pbar_inner.format_dict['n'] + 1) * x.shape[0])
+                        metrics = {'sq_loss': l.item(),
+                                   'min_ce_loss': ma_l.min().item(),
+                                    'max_ce_loss': ma_l.max().item(),
+                                    'min_acc': ma_a.min().item(),
+                                    'max_acc': ma_a.max().item(),
                                 'resid_norm': torch.mean(torch.square(g)).item()}
                         if self.device.type == 'cuda':
                             metrics['gpu_mem'] = 1e-9*torch.cuda.max_memory_allocated()
@@ -377,9 +416,15 @@ class classificationParallelInterpolation(object):
                         pbar_inner.set_postfix(metrics)
                 
                 loss /= len(train_loader)
+                ce_loss /= len(train_loader)
+                acc /= len(train)
 
                 if verbose:
-                    metrics = {'loss': loss.item(),
+                    metrics = {'sq_loss': loss.item(),
+                                   'min_ce_loss': ce_loss.min().item(),
+                                    'max_ce_loss': ce_loss.max().item(),
+                                    'min_acc': acc.min().item(),
+                                    'max_acc': acc.max().item(),
                                 'resid_norm': torch.mean(torch.square(g)).item()}
                     if self.device.type == 'cuda':
                         metrics['gpu_mem'] = 1e-9*torch.cuda.max_memory_allocated()
