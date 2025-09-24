@@ -464,7 +464,7 @@ class classificationParallelInterpolation(object):
         for x,_ in test_loader:
             preds.append(self.eval(x)) # S x N x C
             if network_mean:
-                net_preds.append(self.network(x.to(self.device)))
+                net_preds.append(self.network(x.to(self.device)).detach())
         predictions = torch.cat(preds,dim=1) # N x C x S ---> S x N x C
         if network_mean:
             predictions_net = torch.cat(net_preds,dim=0)    
@@ -491,7 +491,7 @@ class classificationParallelInterpolation(object):
         f_nlin = self.network(x)
         proj = torch.vmap(self.jvp_first, (1,None,None))((self.theta_S),self.params,x).permute(1,2,0)
         f_lin = (proj + f_nlin.unsqueeze(2))
-        return f_lin.detach().permute(2,0,1) 
+        return f_lin.detach().permute(2,0,1)
     
     def HyperparameterTuning(self, validation, metric = 'ece', left = 1e-2, right = 1e2, its = 100, verbose=False):
         predictions = self.test(validation, test_bs=200).cpu()
