@@ -368,7 +368,6 @@ class classificationParallelInterpolation(object):
 
                     # Compute cross-entropy loss
                     f_nlin = self.network(x)
-                    print(f.shape)
                     f_lin = (f.reshape(-1,S) + f_nlin.reshape(-1,1)).reshape(x.shape[0],n_output,S)
                     if n_output > 1:
                         Mubar = torch.clamp(torch.nn.functional.softmax(f_lin,dim=1),1e-32,1)
