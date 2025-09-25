@@ -446,7 +446,7 @@ class classificationParallelInterpolation(object):
             print('Posterior samples computed!')
         self.theta_S = theta_S
 
-        return loss.item()
+        return loss.item(), ce_loss.max().item(), acc.min().item()
     
     def pre_load(self, pre_load):
         weight_dict = torch.load(pre_load, map_location=self.device)
