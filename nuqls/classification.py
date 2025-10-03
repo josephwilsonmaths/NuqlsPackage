@@ -203,7 +203,7 @@ class classificationParallel(object):
         for x,_ in test_loader:
             preds.append(self.eval(x)) # S x N x C
             if network_mean:
-                net_preds.append(self.network(x.to(self.device)))
+                net_preds.append(self.network(x.to(self.device)).detach())
         predictions = torch.cat(preds,dim=1) # N x C x S ---> S x N x C
         if network_mean:
             predictions_net = torch.cat(net_preds,dim=0)    
